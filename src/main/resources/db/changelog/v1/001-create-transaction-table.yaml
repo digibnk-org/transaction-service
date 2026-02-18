@@ -1,0 +1,50 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-transaction-table
+      author: digibnk
+      changes:
+        - createTable:
+            tableName: transaction
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+              - column:
+                  name: transaction_type
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: amount
+                  type: decimal(19, 2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source_account_id
+                  type: bigint
+              - column:
+                  name: target_account_id
+                  type: bigint
+              - column:
+                  name: status
+                  type: varchar(20)
+                  defaultValue: "PENDING"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reference
+                  type: varchar(100)
+                  constraints:
+                    unique: true        
