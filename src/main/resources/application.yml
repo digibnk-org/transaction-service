@@ -1,0 +1,22 @@
+server:
+  port: 8083
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: transaction-service
+  datasource:
+    url: jdbc:postgresql://localhost:5435/digibnk_transaction
+    username: postgres
+    password: password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
