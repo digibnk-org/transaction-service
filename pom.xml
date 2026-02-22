@@ -58,6 +58,12 @@
 			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 		</dependency>
 
+		<!-- OpenFeign - inter-service communication -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-openfeign</artifactId>
+		</dependency>
+
 		<!-- Utilities -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
