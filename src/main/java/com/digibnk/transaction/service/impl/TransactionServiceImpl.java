@@ -9,6 +9,8 @@ import com.digibnk.transaction.dto.TransactionDTO;
 import com.digibnk.transaction.entity.Transaction;
 import com.digibnk.transaction.enums.TransactionStatus;
 import com.digibnk.transaction.enums.TransactionType;
+import com.digibnk.transaction.event.TransactionCreatedEvent;
+import com.digibnk.transaction.kafka.TransactionEventProducer;
 import com.digibnk.transaction.mapper.TransactionMapper;
 import com.digibnk.transaction.repository.TransactionRepository;
 import com.digibnk.transaction.service.TransactionService;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -31,6 +34,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionRepository transactionRepository;
     private final TransactionMapper transactionMapper;
     private final AccountFeignClient accountFeignClient;
+    private final TransactionEventProducer eventProducer;
 
     @Override
     @Transactional
@@ -87,6 +91,9 @@ public class TransactionServiceImpl implements TransactionService {
             transaction.setStatus(TransactionStatus.COMPLETED);
             transaction = transactionRepository.save(transaction);
             log.info("Transaction {} completed successfully", transaction.getReference());
+
+            // Publish event AFTER commit
+            publishTransactionEvent(transaction);
 
         } catch (Exception ex) {
             transaction.setStatus(TransactionStatus.FAILED);
@@ -153,22 +160,33 @@ public class TransactionServiceImpl implements TransactionService {
                                      Long sourceAccountId, Long targetAccountId) {
         switch (type) {
             case WITHDRAWAL -> {
-                // Debit source
                 accountFeignClient.updateBalance(sourceAccountId,
                         new BalanceUpdateRequest(amount.negate()));
             }
             case DEPOSIT -> {
-                // Credit target
                 accountFeignClient.updateBalance(targetAccountId,
                         new BalanceUpdateRequest(amount));
             }
             case TRANSFER -> {
-                // Debit source then credit target
                 accountFeignClient.updateBalance(sourceAccountId,
                         new BalanceUpdateRequest(amount.negate()));
                 accountFeignClient.updateBalance(targetAccountId,
                         new BalanceUpdateRequest(amount));
             }
         }
+    }
+
+    private void publishTransactionEvent(Transaction transaction) {
+        TransactionCreatedEvent event = TransactionCreatedEvent.builder()
+                .transactionId(transaction.getId())
+                .reference(transaction.getReference())
+                .type(transaction.getTransactionType())
+                .amount(transaction.getAmount())
+                .sourceAccountId(transaction.getSourceAccountId())
+                .targetAccountId(transaction.getTargetAccountId())
+                .status(transaction.getStatus().name())
+                .occurredAt(LocalDateTime.now())
+                .build();
+        eventProducer.publishTransactionCreated(event);
     }
 }

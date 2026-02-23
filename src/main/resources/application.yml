@@ -1,5 +1,6 @@
 server:
-  port: 8083
+  port: ${SERVER_PORT:8083}
+  forward-headers-strategy: framework
 
 spring:
   main:
@@ -7,40 +8,62 @@ spring:
   application:
     name: transaction-service
   datasource:
-    url: jdbc:postgresql://localhost:5435/digibnk_transaction
-    username: postgres
-    password: password
+    url: ${DB_URL:jdbc:postgresql://localhost:5435/digibnk_transaction}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8084/realms/digibnk
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/digibnk}
   jpa:
     hibernate:
       ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
-        show_sql: true
+        show_sql: ${JPA_SHOW_SQL:true}
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
 
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
   instance:
     preferIpAddress: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+  show-actuator: false
 
 feign:
   client:
     config:
       account-service:
         loggerLevel: BASIC
-        connectTimeout: 5000
-        readTimeout: 5000
+        connectTimeout: ${FEIGN_CONNECT_TIMEOUT:5000}
+        readTimeout: ${FEIGN_READ_TIMEOUT:5000}
+
+app:
+  swagger:
+    server-url: ${API_SERVER_URL:http://localhost:8083}
+  kafka:
+    topics:
+      transaction-created: ${KAFKA_TOPIC_TRANSACTION_CREATED:digibnk.transaction.created}
 
 logging:
   level:
     com.digibnk.transaction.client: DEBUG
+    org.springframework.kafka: INFO
