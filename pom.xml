@@ -115,6 +115,11 @@
 			<groupId>io.github.openfeign</groupId>
 			<artifactId>feign-micrometer</artifactId>
 		</dependency>
+		<!-- Apache HttpClient 5 -->
+		<dependency>
+			<groupId>io.github.openfeign</groupId>
+			<artifactId>feign-hc5</artifactId>
+		</dependency>
 
 		<!-- Testing -->
 		<dependency>
