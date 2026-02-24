@@ -42,12 +42,71 @@ eureka:
     preferIpAddress: true
 
 feign:
+  circuitbreaker:
+    enabled: true   # enables FallbackFactory on all @FeignClient beans
   client:
     config:
       account-service:
         loggerLevel: BASIC
-        connectTimeout: ${FEIGN_CONNECT_TIMEOUT:5000}
-        readTimeout: ${FEIGN_READ_TIMEOUT:5000}
+        connectTimeout: ${FEIGN_CONNECT_TIMEOUT:3000}
+        readTimeout: ${FEIGN_READ_TIMEOUT:3000}
+
+# Resilience4j
+resilience4j:
+  circuitbreaker:
+    instances:
+      account-service:
+        # Evaluate last 10 calls (COUNT_BASED sliding window)
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        # At least 5 calls must complete before evaluating failure rate
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        # Also open circuit if >= 50% of calls are slow (> slowCallDurationThreshold)
+        slow-call-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+        # Stay OPEN for 30s before trying again (HALF-OPEN)
+        wait-duration-in-open-state: 30s
+        # Allow 3 test calls in HALF-OPEN before deciding to CLOSE or re-OPEN
+        permitted-number-of-calls-in-half-open-state: 3
+        # Exceptions that count as failures
+        record-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - feign.FeignException
+
+  retry:
+    instances:
+      account-service:
+        max-attempts: 3
+        wait-duration: 500ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+        ignore-exceptions:
+          - feign.FeignException.BadRequest
+          - feign.FeignException.NotFound
+
+  timelimiter:
+    instances:
+      account-service:
+        timeout-duration: 3s
+        cancel-running-future: true
+
+# Observability
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers
 
 app:
   swagger:
@@ -59,4 +118,5 @@ app:
 logging:
   level:
     com.digibnk.transaction.client: DEBUG
+    io.github.resilience4j: DEBUG
     org.springframework.kafka: INFO

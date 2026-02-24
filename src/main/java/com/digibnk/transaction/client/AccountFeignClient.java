@@ -9,7 +9,8 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "account-service", path = "/api/v1/accounts")
+@FeignClient(name = "account-service", path = "/api/v1/accounts",
+             fallbackFactory = AccountFeignClientFallbackFactory.class)
 public interface AccountFeignClient {
 
     @GetMapping("/{id}")
