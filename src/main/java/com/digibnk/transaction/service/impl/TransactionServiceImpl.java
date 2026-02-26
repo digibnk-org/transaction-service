@@ -1,5 +1,7 @@
 package com.digibnk.transaction.service.impl;
 
+import com.digibnk.common.error.ErrorCode;
+import com.digibnk.common.exception.BusinessException;
 import com.digibnk.common.exception.ResourceNotFoundException;
 import com.digibnk.transaction.client.AccountFeignClient;
 import com.digibnk.transaction.client.dto.AccountResponse;
@@ -56,20 +58,17 @@ public class TransactionServiceImpl implements TransactionService {
 
         switch (dto.getType()) {
             case WITHDRAWAL -> {
-                if (sourceAccount == null) {
-                    throw new IllegalArgumentException("Source account is required for WITHDRAWAL");
-                }
+                if (sourceAccount == null)
+                    throw new BusinessException(ErrorCode.MISSING_SOURCE_ACCOUNT, "Source account is required for WITHDRAWAL");
                 checkSufficientFunds(sourceAccount, dto.getAmount());
             }
             case DEPOSIT -> {
-                if (targetAccount == null) {
-                    throw new IllegalArgumentException("Target account is required for DEPOSIT");
-                }
+                if (targetAccount == null)
+                    throw new BusinessException(ErrorCode.MISSING_TARGET_ACCOUNT, "Target account is required for DEPOSIT");
             }
             case TRANSFER -> {
-                if (sourceAccount == null || targetAccount == null) {
-                    throw new IllegalArgumentException("Both source and target accounts are required for TRANSFER");
-                }
+                if (sourceAccount == null || targetAccount == null)
+                    throw new BusinessException(ErrorCode.MISSING_SOURCE_ACCOUNT, "Both source and target accounts are required for TRANSFER");
                 checkSufficientFunds(sourceAccount, dto.getAmount());
             }
         }
@@ -131,29 +130,29 @@ public class TransactionServiceImpl implements TransactionService {
     private AccountResponse fetchAccount(Long accountId) {
         try {
             var response = accountFeignClient.getAccountById(accountId);
-            if (response == null || response.getData() == null) {
+            if (response == null || response.getData() == null)
                 throw new ResourceNotFoundException("Account not found with id: " + accountId);
-            }
             return response.getData();
         } catch (ResourceNotFoundException ex) {
             throw ex;
         } catch (Exception ex) {
             log.error("Failed to fetch account {}: {}", accountId, ex.getMessage());
-            throw new RuntimeException("Unable to verify account " + accountId + ": " + ex.getMessage(), ex);
+            throw new BusinessException(ErrorCode.ACCOUNT_SERVICE_UNAVAILABLE,
+                    "Account service unavailable. Try again later.");
         }
     }
 
     private void validateAccountActive(AccountResponse account) {
-        if (!"ACTIVE".equalsIgnoreCase(account.getStatus())) {
-            throw new IllegalStateException("Account " + account.getId() + " is not active (status: " + account.getStatus() + ")");
-        }
+        if (!"ACTIVE".equalsIgnoreCase(account.getStatus()))
+            throw new BusinessException(ErrorCode.ACCOUNT_INACTIVE,
+                    "Account " + account.getId() + " is not active (status: " + account.getStatus() + ")");
     }
 
     private void checkSufficientFunds(AccountResponse account, BigDecimal amount) {
-        if (account.getBalance().compareTo(amount) < 0) {
-            throw new IllegalStateException("Insufficient funds in account " + account.getId()
+        if (account.getBalance().compareTo(amount) < 0)
+            throw new BusinessException(ErrorCode.INSUFFICIENT_FUNDS,
+                    "Insufficient funds in account " + account.getId()
                     + ". Available: " + account.getBalance() + ", Required: " + amount);
-        }
     }
 
     private void applyBalanceChanges(TransactionType type, BigDecimal amount,
