@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-add-audit-columns-transaction
+      author: digibnk
+      changes:
+        - addColumn:
+            tableName: transaction
+            columns:
+              - column:
+                  name: created_by
+                  type: VARCHAR(100)
+              - column:
+                  name: updated_by
+                  type: VARCHAR(100)
+      rollback:
+        - dropColumn:
+            tableName: transaction
+            columnName: created_by
+        - dropColumn:
+            tableName: transaction
+            columnName: updated_by
