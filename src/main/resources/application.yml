@@ -2,6 +2,12 @@ server:
   port: ${SERVER_PORT:8083}
   forward-headers-strategy: framework
 
+grpc:
+  client:
+    account-service:
+      address: discovery:///account-service
+      negotiationType: PLAINTEXT
+
 spring:
   threads:
     virtual:
